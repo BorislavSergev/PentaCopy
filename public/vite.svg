@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pentacopy-gradient" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#41D1FF"/>
+      <stop offset="1" stop-color="#BD34FE"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="url(#pentacopy-gradient)"/>
+  <path d="M80 200V56h64c40 0 56 48 24 72-8 6-20 8-32 8H112v64H80Zm32-96h32c16 0 24-16 8-24-4-2-10-2-16-2h-24v26Z" fill="#fff"/>
+</svg>

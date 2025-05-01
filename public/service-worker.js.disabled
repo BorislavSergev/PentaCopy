@@ -1,0 +1,335 @@
+// Service Worker to prevent page reloads when switching tabs/windows
+const CACHE_NAME = 'pentacopy-cache-v3';
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/assets/index.css',
+  '/assets/index.js',
+];
+
+// The request cache map to store responses for navigation requests
+// This will help preserve app state when switching tabs
+const REQUEST_CACHE = new Map();
+const TAB_STATE = new Map();
+const FREEZE_TIMESTAMP = new Map();
+
+// Flag to disable the service worker if it's causing issues
+let isDisabled = false;
+
+// Install the service worker and cache initial assets
+self.addEventListener('install', (event) => {
+  console.log('Service worker installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Caching app shell');
+        return cache.addAll(APP_SHELL);
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// Activate the service worker and clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('Service worker activating...');
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+    .then(() => {
+      // Take control immediately
+      console.log('Service worker taking control of all clients');
+      return self.clients.claim();
+    })
+  );
+});
+
+// Function to notify all clients about an event
+const notifyAllClients = (data) => {
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage(data);
+    });
+  });
+};
+
+// Handle messages from clients
+self.addEventListener('message', (event) => {
+  console.log('Service worker received message:', event.data.type);
+  
+  // Handle emergency disable message
+  if (event.data && event.data.type === 'DISABLE_SERVICE_WORKER') {
+    console.log('Service worker disabled due to client request');
+    isDisabled = true;
+    notifyAllClients({ type: 'SERVICE_WORKER_DISABLED' });
+    return;
+  }
+  
+  // Handle service worker re-enable
+  if (event.data && event.data.type === 'ENABLE_SERVICE_WORKER') {
+    console.log('Service worker re-enabled');
+    isDisabled = false;
+    notifyAllClients({ type: 'SERVICE_WORKER_ENABLED' });
+    return;
+  }
+  
+  // If disabled, don't process any other messages
+  if (isDisabled) {
+    console.log('Service worker is disabled, ignoring message:', event.data.type);
+    return;
+  }
+  
+  // Handle visibility change messages
+  if (event.data && event.data.type === 'VISIBILITY_CHANGE') {
+    console.log('Service worker received visibility change:', event.data.state);
+    // Store the visibility state for reference
+    self.visibilityState = event.data.state;
+    
+    // Get the client ID
+    const clientId = event.source.id;
+    
+    // Store the last state for this client
+    TAB_STATE.set(clientId, {
+      state: event.data.state,
+      url: event.source.url,
+      timestamp: event.data.timestamp || Date.now()
+    });
+    
+    // If the tab is going invisible, save the timestamp
+    if (event.data.state === 'hidden') {
+      FREEZE_TIMESTAMP.set(clientId, Date.now());
+      console.log(`Tab ${clientId} became hidden at ${new Date().toISOString()}`);
+    } else {
+      // If the tab is becoming visible
+      const freezeTime = FREEZE_TIMESTAMP.get(clientId);
+      if (freezeTime) {
+        const inactiveTime = Date.now() - freezeTime;
+        console.log(`Tab ${clientId} was inactive for ${inactiveTime}ms`);
+        
+        // If the tab was inactive for more than 5 minutes, we'll want to prevent
+        // a reload but also refresh any data that might be stale
+        if (inactiveTime > 300000) { // 5 minutes
+          notifyAllClients({
+            type: 'REFRESH_DATA',
+            clientId,
+            inactiveTime
+          });
+        }
+      }
+    }
+  }
+  
+  // Handle page reload prevention
+  if (event.data && event.data.type === 'PREVENT_RELOAD') {
+    // Store the URL to prevent reloading with timestamp
+    try {
+      REQUEST_CACHE.set(event.data.url, {
+        timestamp: event.data.timestamp || Date.now(),
+        clientId: event.source.id
+      });
+      console.log('Service worker will prevent reload for:', event.data.url);
+    } catch (error) {
+      console.error('Failed to store URL in REQUEST_CACHE:', error);
+    }
+  }
+  
+  // Handle cache clearing
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    console.log('Clearing all caches');
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+    }).then(() => {
+      console.log('All caches cleared');
+      notifyAllClients({ type: 'CACHE_CLEARED' });
+    });
+    
+    // Also clear our internal caches
+    try {
+      REQUEST_CACHE.clear();
+      TAB_STATE.clear();
+      FREEZE_TIMESTAMP.clear();
+    } catch (error) {
+      console.error('Error clearing internal caches:', error);
+    }
+  }
+});
+
+// Add a periodic cleanup for old cache entries
+setInterval(() => {
+  const now = Date.now();
+  
+  // Clean up REQUEST_CACHE entries older than 24 hours
+  REQUEST_CACHE.forEach((value, key) => {
+    if (typeof value === 'object' && value.timestamp) {
+      const age = now - value.timestamp;
+      if (age > 86400000) { // 24 hours
+        REQUEST_CACHE.delete(key);
+        console.log('Cleaned up old REQUEST_CACHE entry:', key);
+      }
+    }
+  });
+  
+  // Clean up TAB_STATE entries older than 24 hours
+  TAB_STATE.forEach((value, key) => {
+    if (value.timestamp) {
+      const age = now - value.timestamp;
+      if (age > 86400000) { // 24 hours
+        TAB_STATE.delete(key);
+        console.log('Cleaned up old TAB_STATE entry:', key);
+      }
+    }
+  });
+}, 3600000); // Run every hour
+
+// Intercept fetch requests
+self.addEventListener('fetch', (event) => {
+  // If the service worker is disabled, don't intercept anything
+  if (isDisabled) {
+    return;
+  }
+  
+  try {
+    const url = new URL(event.request.url);
+
+    // Skip non-GET requests
+    if (event.request.method !== 'GET') {
+      return;
+    }
+    
+    // For API requests, Supabase requests, or browser extension requests, pass through without caching
+    if (event.request.url.includes('/api/') || 
+        event.request.url.includes('supabase.co') ||
+        event.request.url.includes('chrome-extension://')) {
+      return;
+    }
+
+    // For navigation requests (HTML pages)
+    if (event.request.mode === 'navigate') {
+      // For top-level navigation to the main URL, always use network-first strategy
+      // This prevents the reload loop that can happen with overly aggressive caching
+      if (url.pathname === '/' || url.pathname === '/index.html') {
+        event.respondWith(
+          fetch(event.request)
+            .then(response => {
+              // Clone the response before caching
+              const clonedResponse = response.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, clonedResponse);
+                });
+              return response;
+            })
+            .catch(() => {
+              console.log('Network fetch failed for main page, using cache');
+              return caches.match('/index.html');
+            })
+        );
+        return;
+      }
+      
+      // For other navigations, check if we should prevent reload based on REQUEST_CACHE
+      if (REQUEST_CACHE.has(event.request.url)) {
+        console.log('Preventing reload for:', event.request.url);
+        // Use network-first for navigation requests to ensure fresh content
+        event.respondWith(
+          fetch(event.request)
+            .then(response => {
+              // If we got a valid response from the network, use it and cache it
+              const clonedResponse = response.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, clonedResponse);
+                });
+              return response;
+            })
+            .catch(() => {
+              // If network request fails, fall back to cache
+              console.log('Network fetch failed, using cache for:', event.request.url);
+              return caches.match(event.request)
+                .then(cachedResponse => {
+                  if (cachedResponse) {
+                    return cachedResponse;
+                  }
+                  console.log('No cached response, using index.html');
+                  return caches.match('/index.html');
+                });
+            })
+        );
+        return;
+      }
+      
+      // For other navigation requests, use network-first with caching
+      event.respondWith(
+        fetch(event.request)
+          .then((response) => {
+            // Clone the response before caching
+            const clonedResponse = response.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, clonedResponse);
+              });
+            return response;
+          })
+          .catch(() => {
+            console.log('Network fetch failed, trying cache for:', event.request.url);
+            // If network request fails, try to get from cache
+            return caches.match(event.request)
+              .then(cachedResponse => {
+                // If we don't have the navigation request in cache, 
+                // return the cached index.html (for SPA routes)
+                if (cachedResponse) {
+                  console.log('Serving from cache:', event.request.url);
+                  return cachedResponse;
+                }
+                
+                console.log('No cache entry found, serving app shell for:', event.request.url);
+                return caches.match('/index.html');
+              });
+          })
+      );
+    } else {
+      // For non-navigation requests (assets, etc.), use cache-first strategy
+      event.respondWith(
+        caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Cache-miss: fetch from network and cache for future
+            return fetch(event.request)
+              .then((response) => {
+                // Only cache valid responses
+                if (!response || response.status !== 200 || response.type !== 'basic') {
+                  return response;
+                }
+                // Clone the response
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(event.request, responseToCache);
+                  });
+                return response;
+              })
+              .catch(err => {
+                console.error('Fetch failed:', err);
+                throw err;
+              });
+          })
+      );
+    }
+  } catch (error) {
+    console.error('Error in fetch handler:', error);
+    // If we hit an error, fall back to network
+    return;
+  }
+}); 

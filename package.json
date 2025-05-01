@@ -1,0 +1,48 @@
+{
+  "name": "pentacopy",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "cd server && cross-env NODE_ENV=development nodemon server.js",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "install:all": "npm install && cd server && npm install"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.0.2",
+    "@stripe/react-stripe-js": "^3.6.0",
+    "@stripe/stripe-js": "^7.1.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "axios": "^1.8.4",
+    "concurrently": "^8.2.2",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.3.1",
+    "framer-motion": "^12.7.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.5.1",
+    "stripe": "^18.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.22.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.1",
+    "vite": "^6.3.1"
+  }
+}

@@ -1,0 +1,284 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 250, 250, 250;
+  --background-end-rgb: 255, 255, 255;
+}
+
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 13, 13, 13;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-200;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+/* Support for multi-language content and better text rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prose customization for markdown content */
+.prose pre {
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 !important;
+}
+
+.prose code {
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-1 py-0.5 rounded text-sm font-mono !important;
+}
+
+.prose a {
+  @apply text-indigo-600 dark:text-indigo-400 no-underline hover:underline !important;
+}
+
+.prose strong {
+  @apply text-gray-900 dark:text-gray-100 font-semibold !important;
+}
+
+.prose {
+  @apply text-gray-700 dark:text-gray-300 !important;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  @apply text-gray-900 dark:text-gray-100 !important;
+  scroll-margin-top: 100px;
+}
+
+.prose img {
+  @apply rounded-lg mx-auto !important;
+}
+
+.prose blockquote {
+  @apply bg-gray-50 dark:bg-gray-800/50 border-l-4 border-indigo-500 dark:border-indigo-400 pl-4 py-1 my-4 !important;
+}
+
+.prose blockquote p {
+  @apply mb-0 !important;
+}
+
+.prose ul {
+  @apply list-disc list-outside !important;
+}
+
+.prose ol {
+  @apply list-decimal list-outside !important;
+}
+
+/* Ensure dark mode is properly applied to tailwind elements */
+.dark .dark\:bg-gray-800 {
+  background-color: rgb(31, 41, 55);
+}
+
+.dark .dark\:bg-gray-900 {
+  background-color: rgb(17, 24, 39);
+}
+
+.dark .dark\:border-gray-700 {
+  border-color: rgb(55, 65, 81);
+}
+
+.dark .dark\:text-white {
+  color: rgb(255, 255, 255);
+}
+
+.dark .dark\:text-gray-300 {
+  color: rgb(209, 213, 219);
+}
+
+.bg-app-gradient {
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+}
+
+/* Custom scrollbar styling */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500 dark:bg-gray-500;
+}
+
+/* Mobile-friendly sidebar scrollbar */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
+
+@media (max-width: 768px) {
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 2px;
+  }
+}
+
+/* Custom styles for markdown content */
+.markdown-content {
+  font-family: 'Open Sans', sans-serif;
+}
+
+.markdown-content p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content h1, 
+.markdown-content h2, 
+.markdown-content h3, 
+.markdown-content h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.markdown-content h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.25rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.125rem;
+}
+
+.markdown-content h4 {
+  font-size: 1rem;
+}
+
+.markdown-content code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+}
+
+.markdown-content pre {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content a {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+/* For dark mode toggle */
+.dark .markdown-content code,
+.dark .markdown-content pre {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .markdown-content a {
+  color: #818cf8;
+}
+
+/* Reset default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* For dark mode toggle if needed later */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
